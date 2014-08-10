@@ -1,0 +1,27 @@
+#!/bin/sh
+
+logger -p local0.notice -t igb_setmac "running on $1"
+
+if [ \! -f /sys/bus/i2c/devices/3-0050/eeprom ]; then
+  logger -p local0.notice -t igb_setmac "no eeprom on i2c 3-0050, exiting"
+  exit 1
+fi
+
+MAC_HEX=`dd if=/sys/bus/i2c/devices/3-0050/eeprom bs=1 count=6 skip=4 2>/dev/null | od -A "n" -t x1`
+MAC=`printf "%s:%s:%s:%s:%s:%s\n" $MAC_HEX`
+
+if ! echo $MAC | egrep -q "^00:01:c0:"; then
+  logger -p local0.notice -t igb_setmac "mac address is not from compulab, found $MAC expected 00:01:c0:xx:xx:xx, exiting"
+  exit 1
+fi
+
+if [ \! -d /sys/bus/pci/devices/0000\:01\:00.0/net/ ]; then
+  logger -p local0.notice -t igb_setmac "network device at pci address 0000:01:00.0 not found, exiting"
+  exit 1
+fi
+
+NET_DEV=`ls /sys/bus/pci/devices/0000\:01\:00.0/net/ | head -1`
+
+logger -p local0.notice -t igb_setmac "setting $NET_DEV mac $MAC"
+ip link set dev $NET_DEV down
+ip link set dev $NET_DEV address $MAC

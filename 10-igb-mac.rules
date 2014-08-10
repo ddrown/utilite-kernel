@@ -1,0 +1,2 @@
+# PCIe intel nic
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", KERNEL=="eth*", ATTRS{subsystem_vendor}=="0x8086", RUN+="/bin/igb_setmac %k"
